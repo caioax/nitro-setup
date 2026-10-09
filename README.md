@@ -11,7 +11,7 @@ on its own:
 | `fans`     | `nitro-fans`: fans on Auto (NBFC curve) or Max                        | `~/.local/bin`                  |
 |            | `nitro-fan-curve.json`: NBFC fan curve, selected as the active config | `/usr/share/nbfc/configs`       |
 | `mouse`    | `local-overrides.quirks`: no mouse debounce (drag click, Minecraft)   | `/etc/libinput`                 |
-| `mangohud` | `MangoHud.conf`: overlay config (toggle with `Home`)                  | `~/.config/MangoHud`            |
+| `mangohud` | `MangoHud.conf`: overlay config (toggle with `Home`), 32-bit too      | `~/.config/MangoHud`            |
 
 `cpu` and `fans` also add their keybinds and autostart (`lyne.json`) to
 `~/.config/quickshell/state.json`: `CTRL + ALT + 1..5` CPU
@@ -30,7 +30,7 @@ Low/Base/High/Ultra/Max, `CTRL + ALT + A/M` fans Auto/Max, and at login
     ./setup.sh
     ```
 
-    A menu lists the parts, all selected: type their numbers to toggle them,
+    A menu lists the parts, all selected: move with ↑/↓, toggle with Space,
     Enter to run. `--only=cpu,fans` skips the menu.
 
 3. Log out and back in (libinput quirks and autostart). The setup lists what

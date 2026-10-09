@@ -27,13 +27,13 @@ MANGOHUD_FILE="$HOME/.config/MangoHud/MangoHud.conf"
 
 COMPONENTS=(cpu fans mouse mangohud)
 declare -A DESCRIPTION=(
-    [cpu]="CPU frequency profiles: nitro-cpu, cpupower without password, keybinds"
-    [fans]="Fan control: NBFC fan curve, nitro-fans, keybinds"
-    [mouse]="Mouse drag click: libinput quirks (no debounce)"
-    [mangohud]="MangoHud overlay config"
+    [cpu]="CPU frequency profiles (nitro-cpu, sudoers, keybinds)"
+    [fans]="Fan control (NBFC fan curve, nitro-fans, keybinds)"
+    [mouse]="Mouse drag click (libinput quirks, no debounce)"
+    [mangohud]="MangoHud overlay (config, 64 and 32-bit games)"
 )
 # Packages per component; jq is always needed
-declare -A REPO_PKGS=([cpu]="cpupower libnotify" [fans]="libnotify" [mouse]="" [mangohud]="mangohud")
+declare -A REPO_PKGS=([cpu]="cpupower libnotify" [fans]="libnotify" [mouse]="" [mangohud]="mangohud lib32-mangohud")
 declare -A AUR_PKGS=([cpu]="" [fans]="nbfc-linux" [mouse]="" [mangohud]="")
 declare -A SELECTED=()
 
@@ -145,30 +145,114 @@ install_file() {
 
 # ------------------------------------------------------------------- menu
 
-choose_components() {
-    local input n c mark
-    while true; do
-        echo
-        echo "Select what to set up (numbers toggle, Enter runs, q quits):"
-        for n in "${!COMPONENTS[@]}"; do
-            c="${COMPONENTS[n]}"
-            mark=" "
-            selected "$c" && mark="x"
-            printf '  %d) [%s] %-9s %s\n' $((n + 1)) "$mark" "$c" "${DESCRIPTION[$c]}"
-        done
-        read -rp "> " input || exit 1
-        case "$input" in
-        "") return 0 ;;
-        q | Q) exit 0 ;;
+# Full-screen checklist in the style of the lyne-dots installer, drawn on the
+# alternate screen: up/down (or j/k) move, space toggles, a all/none, enter
+# runs, q quits
+
+MENU_STTY=""
+
+menu_enter() {
+    MENU_STTY="$(stty -g </dev/tty)"
+    trap 'menu_leave; exit 130' INT TERM
+    printf '\033[?1049h\033[?25l\033[H\033[2J' >/dev/tty
+}
+
+menu_leave() {
+    printf '\033[0m\033[?25h\033[?1049l' >/dev/tty
+    [[ -n "$MENU_STTY" ]] && stty "$MENU_STTY" </dev/tty
+    trap - INT TERM
+}
+
+# Reads one key into KEY: up, down, enter, space, eof or the character
+menu_read_key() {
+    local k rest
+    if ! IFS= read -rsn1 k </dev/tty; then
+        KEY=eof
+        return
+    fi
+    case "$k" in
+    $'\033')
+        IFS= read -rsn2 -t 0.05 rest </dev/tty || true
+        case "$rest" in
+        '[A' | 'OA') KEY=up ;;
+        '[B' | 'OB') KEY=down ;;
+        '') KEY=esc ;;
+        *)
+            # Drain the rest of a longer sequence (F keys, Home...)
+            IFS= read -rsn8 -t 0.01 rest </dev/tty || true
+            KEY=other
+            ;;
         esac
-        for n in ${input//,/ }; do
-            if [[ "$n" =~ ^[0-9]+$ ]] && ((n >= 1 && n <= ${#COMPONENTS[@]})); then
-                c="${COMPONENTS[n - 1]}"
-                if selected "$c"; then SELECTED[$c]=0; else SELECTED[$c]=1; fi
-            else
-                warn "no option '$n'"
+        ;;
+    '') KEY=enter ;;
+    ' ') KEY=space ;;
+    *) KEY="$k" ;;
+    esac
+}
+
+choose_components() {
+    local cursor_glyph="▶" updown="↑/↓" dot="·" rule_glyph="─"
+    if [[ "$TERM" == linux ]]; then
+        cursor_glyph=">" updown="up/down" dot="-" rule_glyph="-"
+    fi
+    local bold=$'\033[1m' dim=$'\033[2m' accent=$'\033[34m' sel=$'\033[1;36m' reset=$'\033[0m'
+    local n=${#COMPONENTS[@]} cur=0 i c cols width rule line cursor mark style desc out
+    local note=""
+    $DRY_RUN && note=" (dry run)"
+
+    menu_enter
+    while true; do
+        cols="$(stty size </dev/tty | cut -d' ' -f2)"
+        width=$((cols - 4))
+        ((width > 76)) && width=76
+        printf -v rule '%*s' "$width" ""
+
+        out=$'\033[H\n'
+        out+="  $accent${bold}nitro-setup$reset  ${dim}Acer Nitro 5 tweaks${note}$reset"$'\033[K\n\n'
+        out+="  ${bold}What should be set up?$reset"$'\033[K\n'
+        out+="  $dim${rule// /$rule_glyph}$reset"$'\033[K\n\n'
+        for ((i = 0; i < n; i++)); do
+            c="${COMPONENTS[i]}"
+            cursor="  " style=""
+            if ((i == cur)); then
+                cursor="$cursor_glyph " style="$sel"
             fi
+            mark="[ ]"
+            selected "$c" && mark="[x]"
+            desc="${DESCRIPTION[$c]}"
+            # Cut the description to what's left of the line
+            ((${#desc} > width - 17)) && desc="${desc:0:width-20}..."
+            printf -v line '%s%s%s %-10s%s %s%s%s' "$style" "$cursor" "$mark" "$c" "$reset" "$dim" "$desc" "$reset"
+            out+="  $line"$'\033[K\n'
         done
+        out+=$'\033[K\n'
+        out+="  $dim$updown move $dot space toggle $dot a all/none $dot enter run $dot q quit$reset"$'\033[K\n'
+        printf '%s\033[J' "$out" >/dev/tty
+
+        menu_read_key
+        case "$KEY" in
+        up | k) cur=$(((cur - 1 + n) % n)) ;;
+        down | j) cur=$(((cur + 1) % n)) ;;
+        space | x)
+            c="${COMPONENTS[cur]}"
+            if selected "$c"; then SELECTED[$c]=0; else SELECTED[$c]=1; fi
+            ;;
+        a | A)
+            # All on, or all off when everything already is
+            local all=1 v=1
+            for c in "${COMPONENTS[@]}"; do selected "$c" || all=0; done
+            ((all)) && v=0
+            for c in "${COMPONENTS[@]}"; do SELECTED[$c]=$v; done
+            ;;
+        enter)
+            menu_leave
+            return 0
+            ;;
+        q | Q | esc | eof)
+            menu_leave
+            exit 0
+            ;;
+        esac
     done
 }
 
@@ -233,6 +317,15 @@ if $DO_PACKAGES; then
         for p in ${REPO_PKGS[$c]}; do repo_pkgs[$p]=1; done
         for p in ${AUR_PKGS[$c]}; do aur_pkgs[$p]=1; done
     done
+    # lib32-* come from multilib, off by default in pacman.conf
+    if ! pacman -Sl multilib &>/dev/null; then
+        for p in "${!repo_pkgs[@]}"; do
+            if [[ "$p" == lib32-* ]]; then
+                unset "repo_pkgs[$p]"
+                warn "multilib is off in /etc/pacman.conf, skipping $p"
+            fi
+        done
+    fi
     install_missing pacman "${!repo_pkgs[@]}"
     install_missing aur "${!aur_pkgs[@]}"
 fi
