@@ -24,7 +24,7 @@ Low/Base/High/Ultra/Max, `CTRL + ALT + A/M` fans Auto/Max, and at login
 2. Clone and run:
 
     ```sh
-    git clone git@github.com:caioax/nitro-setup.git ~/Dev/nitro-setup
+    git clone https://github.com/caioax/nitro-setup.git ~/Dev/nitro-setup
     cd ~/Dev/nitro-setup
     ./setup.sh --dry-run   # see what will change
     ./setup.sh

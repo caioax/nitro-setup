@@ -1,6 +1,6 @@
 {
     "NotebookModel": "Nitro AN517-54",
-    "Author": "Caio",
+    "Author": "FosRexx, curve tweaked by Caio",
     "EcPollInterval": 1000,
     "CriticalTemperature": 90,
     "CriticalTemperatureOffset": 5,
