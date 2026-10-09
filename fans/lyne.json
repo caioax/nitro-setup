@@ -1,0 +1,24 @@
+{
+  "keybinds": [
+    {
+      "description": "Nbfc Auto",
+      "command": "~/.local/bin/nitro-fans Auto",
+      "keys": "CTRL + ALT + A"
+    },
+    {
+      "description": "Nbfc Max",
+      "command": "~/.local/bin/nitro-fans Max",
+      "keys": "CTRL + ALT + M"
+    }
+  ],
+  "autostart": [
+    {
+      "name": "Controlar fans",
+      "command": "~/.local/bin/nitro-fans Auto --no-notify",
+      "desktop": "",
+      "delay": 0,
+      "workspace": "",
+      "enabled": true
+    }
+  ]
+}

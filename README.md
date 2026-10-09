@@ -1,19 +1,22 @@
 # nitro-setup
 
 Tweaks for my Acer Nitro 5 (AN517-54), applied on top of
-lyne-dots (`~/.lyne-dots`).
+lyne-dots (`~/.lyne-dots`). Each folder is a part that `setup.sh` can set up
+on its own:
 
-| What                                                                                | Where it goes                     |
-| ----------------------------------------------------------------------------------- | --------------------------------- |
-| `bin/nitro-cpu`: cap the CPU max frequency (Low/Base/High/Ultra/Max)                | `~/.local/bin`                    |
-| `bin/nitro-fans`: fans on Auto (NBFC curve) or Max                                  | `~/.local/bin`                    |
-| `system/nbfc/nitro-fan-curve.json`: NBFC fan curve, selected as the active config   | `/usr/share/nbfc/configs`         |
-| `cpupower` without password, for `nitro-cpu`                                        | `/etc/sudoers.d/nitro-cpupower`   |
-| `system/libinput/local-overrides.quirks`: no mouse debounce (drag click, Minecraft) | `/etc/libinput`                   |
-| Keybinds and autostart (`lyne/entries.json`)                                        | `~/.config/quickshell/state.json` |
+| Part       | What                                                                  | Where it goes                   |
+| ---------- | --------------------------------------------------------------------- | ------------------------------- |
+| `cpu`      | `nitro-cpu`: cap the CPU max frequency (Low/Base/High/Ultra/Max)      | `~/.local/bin`                  |
+|            | `cpupower` without password, for `nitro-cpu`                          | `/etc/sudoers.d/nitro-cpupower` |
+| `fans`     | `nitro-fans`: fans on Auto (NBFC curve) or Max                        | `~/.local/bin`                  |
+|            | `nitro-fan-curve.json`: NBFC fan curve, selected as the active config | `/usr/share/nbfc/configs`       |
+| `mouse`    | `local-overrides.quirks`: no mouse debounce (drag click, Minecraft)   | `/etc/libinput`                 |
+| `mangohud` | `MangoHud.conf`: overlay config (toggle with `Home`)                  | `~/.config/MangoHud`            |
 
-Keybinds: `CTRL + ALT + 1..5` CPU Low/Base/High/Ultra/Max, `CTRL + ALT + A/M`
-fans Auto/Max. At login: `nitro-cpu Base` and `nitro-fans Auto`.
+`cpu` and `fans` also add their keybinds and autostart (`lyne.json`) to
+`~/.config/quickshell/state.json`: `CTRL + ALT + 1..5` CPU
+Low/Base/High/Ultra/Max, `CTRL + ALT + A/M` fans Auto/Max, and at login
+`nitro-cpu Base` and `nitro-fans Auto`.
 
 ## Fresh install
 
@@ -27,11 +30,15 @@ fans Auto/Max. At login: `nitro-cpu Base` and `nitro-fans Auto`.
     ./setup.sh
     ```
 
+    A menu lists the parts, all selected: type their numbers to toggle them,
+    Enter to run. `--only=cpu,fans` skips the menu.
+
 3. Log out and back in (libinput quirks and autostart). The setup lists what
    needs it at the end.
 
 `setup.sh` can be run again at any time: it only changes what differs. Keybinds
 are matched by description and autostart apps by name, and only their command
-is updated, so keys or options changed in Settings are kept.
+is updated, so keys or options changed in Settings are kept. A different
+`local-overrides.quirks` or `MangoHud.conf` already there is kept as `.bak`.
 
-Options: `--dry-run`, `--skip-packages`, `--skip-system`, `--skip-state`.
+Options: `--only=LIST`, `--dry-run`, `--skip-packages`, `--skip-state`.

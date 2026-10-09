@@ -1,0 +1,39 @@
+{
+  "keybinds": [
+    {
+      "description": "CpuPower Low",
+      "command": "~/.local/bin/nitro-cpu Low",
+      "keys": "CTRL + ALT + 1"
+    },
+    {
+      "description": "CpuPower Base",
+      "command": "~/.local/bin/nitro-cpu Base",
+      "keys": "CTRL + ALT + 2"
+    },
+    {
+      "description": "CpuPower High",
+      "command": "~/.local/bin/nitro-cpu High",
+      "keys": "CTRL + ALT + 3"
+    },
+    {
+      "description": "CpuPower Ultra",
+      "command": "~/.local/bin/nitro-cpu Ultra",
+      "keys": "CTRL + ALT + 4"
+    },
+    {
+      "description": "CpuPower Max",
+      "command": "~/.local/bin/nitro-cpu Max",
+      "keys": "CTRL + ALT + 5"
+    }
+  ],
+  "autostart": [
+    {
+      "name": "Limitar cpu",
+      "command": "~/.local/bin/nitro-cpu Base --no-notify",
+      "desktop": "",
+      "delay": 0,
+      "workspace": "",
+      "enabled": true
+    }
+  ]
+}
