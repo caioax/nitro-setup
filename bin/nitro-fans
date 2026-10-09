@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# nitro-fans - Switch the NBFC fan mode between Auto and Max
+
+# Reach the session's notification daemon even when started outside of it
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
+
+Mode="Auto"
+NO_NOTIFY=false
+
+show_help() {
+  echo "Usage: nitro-fans [Auto|Max] [--no-notify]"
+  echo
+  echo "  Auto    Fan speed follows the NBFC temperature curve"
+  echo "  Max     Fans at 100%"
+  echo
+  echo "Options:"
+  echo "  --no-notify   Run without showing notification"
+  echo "  -h, --help    Show this help"
+  exit 0
+}
+
+# Sends a notification when there is a session to show it
+notify() {
+  if [ -S "$XDG_RUNTIME_DIR/bus" ] && command -v notify-send >/dev/null 2>&1; then
+    notify-send "$@"
+  fi
+}
+
+fail() {
+  echo "nitro-fans: $1" >&2
+  notify -u critical "FanMode: Error" "$1"
+  exit 1
+}
+
+# Process arguments
+for arg in "$@"; do
+  case "$arg" in
+  --no-notify)
+    NO_NOTIFY=true
+    ;;
+  -h | --help)
+    show_help
+    ;;
+  auto | Auto)
+    Mode="Auto"
+    ;;
+  max | Max)
+    Mode="Max"
+    ;;
+  *)
+    fail "Unknown mode '$arg'"
+    ;;
+  esac
+done
+
+# Update fan mode
+if [ "$Mode" == "Auto" ]; then
+  nbfc set -a || fail "Failed to update fan mode to Auto"
+else
+  nbfc set -s 100 || fail "Failed to update fan mode to Max"
+fi
+
+[ "$NO_NOTIFY" = false ] && notify "FanMode: $Mode" "Fan mode updated successfully!"
+exit 0

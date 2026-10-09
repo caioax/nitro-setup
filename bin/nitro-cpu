@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# nitro-cpu - Cap the CPU max frequency with cpupower
+#
+# Needs a NOPASSWD sudoers rule for /usr/bin/cpupower (setup.sh creates it)
+
+# Reach the session's notification daemon even when started outside of it
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
+
+# Pre-defined frequencies (i7-11800H: 2.3GHz base, 4.6GHz turbo)
+FREQ_LOW="1.0GHz"
+FREQ_BASE="2.3GHz"
+FREQ_HIGH="3.0GHz"
+FREQ_ULTRA="3.9GHz"
+FREQ_MAX="4.6GHz" # max turbo, i.e. no limit
+
+# Default values
+FREQ_TARGET="$FREQ_BASE"
+PROFILE_NAME="Base"
+NO_NOTIFY=false
+
+show_help() {
+  echo "Usage: nitro-cpu [Profile|Value] [--no-notify]"
+  echo
+  echo "Available profiles:"
+  echo "  Low     → $FREQ_LOW"
+  echo "  Base    → $FREQ_BASE"
+  echo "  High    → $FREQ_HIGH"
+  echo "  Ultra   → $FREQ_ULTRA"
+  echo "  Max     → $FREQ_MAX (no limit)"
+  echo
+  echo "You can also pass a manual value, e.g.: 2.5GHz"
+  echo
+  echo "Options:"
+  echo "  --no-notify   Run without showing notification"
+  echo "  -h, --help    Show this help"
+  exit 0
+}
+
+# Process arguments
+for arg in "$@"; do
+  case "$arg" in
+  --no-notify)
+    NO_NOTIFY=true
+    ;;
+  -h | --help)
+    show_help
+    ;;
+  Low | low)
+    FREQ_TARGET="$FREQ_LOW"
+    PROFILE_NAME="Low"
+    ;;
+  Base | base)
+    FREQ_TARGET="$FREQ_BASE"
+    PROFILE_NAME="Base"
+    ;;
+  High | high)
+    FREQ_TARGET="$FREQ_HIGH"
+    PROFILE_NAME="High"
+    ;;
+  Ultra | ultra)
+    FREQ_TARGET="$FREQ_ULTRA"
+    PROFILE_NAME="Ultra"
+    ;;
+  Max | max)
+    FREQ_TARGET="$FREQ_MAX"
+    PROFILE_NAME="Max"
+    ;;
+  *)
+    # If not a keyword, assume manual value
+    FREQ_TARGET="$arg"
+    PROFILE_NAME="Custom"
+    ;;
+  esac
+done
+
+# Sends a notification when there is a session to show it
+notify() {
+  if [ -S "$XDG_RUNTIME_DIR/bus" ] && command -v notify-send >/dev/null 2>&1; then
+    notify-send "$@"
+  fi
+}
+
+# Try to set the new frequency
+if sudo -n /usr/bin/cpupower frequency-set -u "$FREQ_TARGET" >/dev/null; then
+  [ "$NO_NOTIFY" = false ] && notify "FreqCPU: $PROFILE_NAME" "Max frequency set to $FREQ_TARGET"
+  exit 0
+else
+  echo "nitro-cpu: failed to set max frequency to $FREQ_TARGET" >&2
+  notify -u critical "FreqCPU: Error" "Failed to set frequency to $FREQ_TARGET"
+  exit 1
+fi
